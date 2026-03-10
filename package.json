@@ -1,0 +1,20 @@
+{
+  "name": "dev-proxy-server",
+  "version": "1.0.0",
+  "description": "Local development HTTPS reverse proxy with path-based routing and WebSocket support",
+  "main": "index.js",
+  "bin": {
+    "dev-proxy": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "http-proxy": "^1.18.1",
+    "yaml": "^2.8.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "license": "MIT"
+}
