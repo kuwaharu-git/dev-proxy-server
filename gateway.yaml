@@ -6,18 +6,15 @@ https_ports:
   - port: 3002
     routes:
       - path: /socket.io/*
-        target: http://localhost:3000
-
-      - path: /api/*
-        target: http://localhost:3000
-
-      - path: /
         target: http://localhost:3001
 
-  - port: 3003
-    routes:
-      - path: /ws/*
-        target: http://localhost:4000
+      - path: /api/*
+        target: http://localhost:3001
 
       - path: /
         target: http://localhost:4001
+
+  - port: 3003
+    routes:
+      - path: /
+        target: http://localhost:3000
