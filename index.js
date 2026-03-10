@@ -91,6 +91,28 @@ function findRoute(routes, requestUrl) {
   return null;
 }
 
+function normalizeTarget(target) {
+  let parsedUrl;
+
+  try {
+    parsedUrl = new URL(target);
+  } catch (err) {
+    throw new Error(`Invalid target URL "${target}"`);
+  }
+
+  if (parsedUrl.protocol === "ws:") {
+    parsedUrl.protocol = "http:";
+  } else if (parsedUrl.protocol === "wss:") {
+    parsedUrl.protocol = "https:";
+  } else if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    throw new Error(
+      `Unsupported target protocol "${parsedUrl.protocol}" for "${target}". Use http://, https://, ws://, or wss://`
+    );
+  }
+
+  return parsedUrl.toString();
+}
+
 // ─── Proxy setup ─────────────────────────────────────────────────────────────
 
 const proxy = httpProxy.createProxyServer({
@@ -113,6 +135,15 @@ for (const portConfig of https_ports) {
 
   if (!port || !Array.isArray(routes)) {
     console.error(`[ERROR] Each https_ports entry must have a port and routes array`);
+    process.exit(1);
+  }
+
+  try {
+    for (const route of routes) {
+      route.target = normalizeTarget(route.target);
+    }
+  } catch (err) {
+    console.error(`[ERROR] Invalid route configuration on port ${port}: ${err.message}`);
     process.exit(1);
   }
 
