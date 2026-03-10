@@ -8,6 +8,7 @@ Local development HTTPS reverse proxy with path-based routing and WebSocket supp
 - Path-based routing (prefix `/*` or exact match), evaluated top-to-bottom
 - HTTP reverse proxy forwarding with `http-proxy`
 - WebSocket / Socket.IO upgrade support via `server.on("upgrade")`
+- `target` accepts `http://`, `https://`, `ws://`, and `wss://`
 - Unmatched paths return `502 Bad Gateway`
 - Request logging per port
 
@@ -65,7 +66,29 @@ https_ports:
   - port: 3003
     routes:
       - path: /ws/*
-        target: http://localhost:4000
+        target: ws://localhost:4000
+
+      - path: /
+        target: http://localhost:4001
+```
+
+### WebSocket configuration
+
+- Put WebSocket routes before the `/` fallback route.
+- Use a dedicated path such as `/ws/*` or `/socket.io/*` so upgrade requests match the intended backend.
+- `target` can be written as `http://localhost:3000` or `ws://localhost:3000`. Both are accepted.
+
+Example:
+
+```yaml
+https_ports:
+  - port: 3002
+    routes:
+      - path: /socket.io/*
+        target: ws://localhost:3001
+
+      - path: /api/*
+        target: http://localhost:3001
 
       - path: /
         target: http://localhost:4001
