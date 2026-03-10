@@ -1,38 +1,50 @@
 # dev-proxy-server
 
-Local development HTTPS reverse proxy with path-based routing and WebSocket support.
+パスベースのルーティングとWebSocketに対応した、ローカル開発用のHTTPSリバースプロキシです。
 
-## Features
+## 機能
 
-- Multiple HTTPS ports from a single YAML config
-- Path-based routing (prefix `/*` or exact match), evaluated top-to-bottom
-- HTTP reverse proxy forwarding with `http-proxy`
-- WebSocket / Socket.IO upgrade support via `server.on("upgrade")`
-- `target` accepts `http://`, `https://`, `ws://`, and `wss://`
-- Unmatched paths return `502 Bad Gateway`
-- Request logging per port
+- 1つのYAML設定から複数のHTTPSポートを起動
+- パスベースのルーティングに対応（`/*` の前方一致または完全一致、上から順に評価）
+- `http-proxy` によるHTTPリバースプロキシ転送
+- `server.on("upgrade")` によるWebSocket / Socket.IO対応
+- `target` には `http://`、`https://`、`ws://`、`wss://` を指定可能
+- 一致しないパスは `502 Bad Gateway` を返却
+- ポートごとのリクエストログ出力
 
-## Prerequisites
+## 前提条件
 
 - Node.js >= 14
-- A TLS certificate + key pair (e.g. generated with [mkcert](https://github.com/FiloSottile/mkcert))
+- TLS証明書と秘密鍵のペア（例: [mkcert](https://github.com/FiloSottile/mkcert) で生成）
 
-## Installation
+生成コマンド例:
+
+```bash
+mkcert -install && mkcert -cert-file cert.pem -key-file key.pem localhost 127.0.0.1 ::1
+```
+
+- `mkcert -install` は mkcert のローカルCAをOSの信頼ストアへ登録し、生成した証明書をブラウザやツールから信頼できるようにします。
+- `-cert-file cert.pem` は証明書を `cert.pem` に出力します。
+- `-key-file key.pem` は秘密鍵を `key.pem` に出力します。
+- `localhost 127.0.0.1 ::1` は、よく使うローカルホスト名とループバックアドレスを証明書のSANに含めます。
+- 出力されるファイル名は、`gateway.yaml` の既定設定と一致しています。
+
+## インストール
 
 ```bash
 npm install
-npm link          # makes `dev-proxy` available globally (optional)
+npm link          # `dev-proxy` コマンドをグローバルに使えるようにする場合のみ
 ```
 
-## Usage
+## 使い方
 
 ```bash
 node index.js gateway.yaml
-# or, after npm link:
+# または npm link 後:
 dev-proxy gateway.yaml
 ```
 
-### Output example
+### 出力例
 
 ```
 [ROUTE] /socket.io/* → http://localhost:3000
@@ -44,41 +56,39 @@ dev-proxy gateway.yaml
 [3002] GET /api/users → http://localhost:3000
 ```
 
-## Configuration (`gateway.yaml`)
+## 設定例 (`gateway.yaml`)
 
 ```yaml
 tls:
-  cert: cert.pem   # path to TLS certificate
-  key: key.pem     # path to TLS private key
+  cert: cert.pem
+  key: key.pem
 
 https_ports:
   - port: 3002
     routes:
-      - path: /socket.io/*     # prefix match
-        target: http://localhost:3000
-
-      - path: /api/*           # prefix match
-        target: http://localhost:3000
-
-      - path: /                # fallback (matches everything)
+      - path: /socket.io/*
         target: http://localhost:3001
 
-  - port: 3003
-    routes:
-      - path: /ws/*
-        target: ws://localhost:4000
+      - path: /api/*
+        target: http://localhost:3001
 
       - path: /
         target: http://localhost:4001
+
+  - port: 3003
+    routes:
+      - path: /
+        target: http://localhost:3000
+
 ```
 
-### WebSocket configuration
+### WebSocket設定
 
-- Put WebSocket routes before the `/` fallback route.
-- Use a dedicated path such as `/ws/*` or `/socket.io/*` so upgrade requests match the intended backend.
-- `target` can be written as `http://localhost:3000` or `ws://localhost:3000`. Both are accepted.
+- WebSocket用ルートは `/` のフォールバックより前に配置してください。
+- `/ws/*` や `/socket.io/*` のような専用パスを使うと、upgradeリクエストを意図したバックエンドへ確実に振り分けられます。
+- `target` は `http://localhost:3000` と `ws://localhost:3000` のどちらでも指定できます。
 
-Example:
+例:
 
 ```yaml
 https_ports:
@@ -94,12 +104,12 @@ https_ports:
         target: http://localhost:4001
 ```
 
-### Path matching rules
+### パスマッチングルール
 
-| Pattern      | Matches                                  |
-|--------------|------------------------------------------|
-| `/`          | Every path (use as fallback)             |
-| `/api/*`     | `/api/` and `/api/anything`              |
-| `/foo/bar`   | Exactly `/foo/bar`                       |
+| パターン    | 一致するパス                             |
+|-------------|------------------------------------------|
+| `/`         | すべてのパス（フォールバック用）         |
+| `/api/*`    | `/api/` および `/api/anything`           |
+| `/foo/bar`  | `/foo/bar` に完全一致                    |
 
-Routes are evaluated **top-to-bottom**; the first match wins.
+ルートは **上から順に** 評価され、最初に一致したものが使われます。
